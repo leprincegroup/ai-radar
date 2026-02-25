@@ -1,101 +1,148 @@
-import Image from "next/image";
+import { Suspense } from 'react';
+import { createClient } from '@/lib/supabase/server';
+import { SidePanel } from '@/components/layout/SidePanel';
+import { FilterBar } from '@/components/feed/FilterBar';
+import { FeedGrid } from '@/components/feed/FeedGrid';
+import { SectionHeader } from '@/components/feed/SectionHeader';
+import type { Tool, Paper } from '@/types';
 
-export default function Home() {
+export const dynamic = 'force-dynamic';
+
+interface PageProps {
+  searchParams: { category?: string; source?: string; sort?: string };
+}
+
+async function getFeedData(category: string, source: string, sort: string) {
+  const supabase = await createClient();
+
+  let toolsQuery = supabase
+    .from('tools')
+    .select('*')
+    .eq('status', 'active');
+
+  if (category && category !== 'all') {
+    toolsQuery = toolsQuery.eq('category', category);
+  }
+  if (source && source !== 'all') {
+    toolsQuery = toolsQuery.eq('source', source);
+  }
+
+  if (sort === 'latest') {
+    toolsQuery = toolsQuery.order('created_at', { ascending: false });
+  } else if (sort === 'most-upvoted') {
+    toolsQuery = toolsQuery.order('upvotes', { ascending: false });
+  } else {
+    toolsQuery = toolsQuery.order('hype_score', { ascending: false });
+  }
+
+  const [toolsRes, papersRes, trendingRes] = await Promise.all([
+    toolsQuery.limit(20),
+    supabase
+      .from('papers')
+      .select('*')
+      .order('hype_score', { ascending: false })
+      .limit(8),
+    supabase
+      .from('tools')
+      .select('*')
+      .eq('status', 'active')
+      .order('hype_score', { ascending: false })
+      .limit(5),
+  ]);
+
+  return {
+    tools: (toolsRes.data || []) as Tool[],
+    papers: (papersRes.data || []) as Paper[],
+    featuredTools: (trendingRes.data || []) as Tool[],
+  };
+}
+
+export default async function HomePage({ searchParams }: PageProps) {
+  const category = searchParams.category || 'all';
+  const source = searchParams.source || 'all';
+  const sort = searchParams.sort || 'trending';
+
+  const { tools, papers, featuredTools } = await getFeedData(category, source, sort);
+
+  const now = Date.now();
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+
+  const trending = tools
+    .sort((a, b) => b.hype_score - a.hype_score)
+    .slice(0, 8)
+    .map(t => ({ ...t, item_type: 'tool' as const }));
+
+  const justLaunched = tools
+    .filter(t => new Date(t.launched_at || t.created_at).getTime() > oneDayAgo)
+    .slice(0, 8)
+    .map(t => ({ ...t, item_type: 'tool' as const }));
+
+  const researchItems = papers
+    .slice(0, 8)
+    .map(p => ({ ...p, item_type: 'paper' as const }));
+
+  const isFiltered = category !== 'all' || source !== 'all' || sort !== 'trending';
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="max-w-[1400px] mx-auto px-4 py-6">
+      {/* Hero */}
+      <div className="text-center py-8 mb-6">
+        <h1 className="font-mono text-2xl sm:text-3xl font-bold text-[var(--text-primary)] mb-2">
+          The AI feed that{' '}
+          <span className="text-[var(--accent-purple)]">never sleeps.</span>
+        </h1>
+        <p className="text-sm text-[var(--text-secondary)]">
+          Latest tools, research &amp; hype — updated every 6 hours
+        </p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Main 3-column layout */}
+      <div className="flex gap-6">
+        {/* Left panel */}
+        <SidePanel side="left" tools={featuredTools} />
+
+        {/* Center content */}
+        <div className="flex-1 min-w-0">
+          <Suspense fallback={null}>
+            <FilterBar />
+          </Suspense>
+
+          {isFiltered ? (
+            /* Filtered view — flat list */
+            <section>
+              <SectionHeader
+                title={`🔍 Filtered Results (${tools.length})`}
+              />
+              <FeedGrid
+                items={tools.map(t => ({ ...t, item_type: 'tool' as const }))}
+              />
+            </section>
+          ) : (
+            /* Default sections */
+            <>
+              <section className="mb-10">
+                <SectionHeader title="🔥 Trending Today" viewAllHref="/?sort=trending" />
+                <FeedGrid items={trending} />
+              </section>
+
+              {justLaunched.length > 0 && (
+                <section className="mb-10">
+                  <SectionHeader title="🆕 Just Launched" viewAllHref="/?sort=latest" />
+                  <FeedGrid items={justLaunched} />
+                </section>
+              )}
+
+              <section className="mb-10">
+                <SectionHeader title="📄 Research Breakthroughs" viewAllHref="/?source=arxiv" />
+                <FeedGrid items={researchItems} />
+              </section>
+            </>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Right panel */}
+        <SidePanel side="right" tools={featuredTools.slice(0, 3)} />
+      </div>
     </div>
   );
 }

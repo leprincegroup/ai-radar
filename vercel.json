@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/ingest/producthunt",
+      "schedule": "0 */6 * * *"
+    },
+    {
+      "path": "/api/ingest/arxiv",
+      "schedule": "0 */12 * * *"
+    },
+    {
+      "path": "/api/ingest/github",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}
