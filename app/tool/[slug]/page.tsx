@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
 import { Badge } from '@/components/ui/Badge';
@@ -67,7 +68,7 @@ export default async function ToolPage({ params }: PageProps) {
         <div className="flex items-start gap-4 flex-1 min-w-0">
           <div className="w-16 h-16 rounded-xl bg-[var(--bg-surface)] flex items-center justify-center text-3xl flex-shrink-0 overflow-hidden">
             {tool.logo_url ? (
-              <img src={tool.logo_url} alt={tool.name} className="w-full h-full object-cover rounded-xl" />
+              <Image src={tool.logo_url} alt={tool.name} width={64} height={64} className="w-full h-full object-cover rounded-xl" unoptimized />
             ) : '🔧'}
           </div>
           <div className="min-w-0 flex-1">

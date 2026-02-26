@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { LeaderboardRow } from '@/components/leaderboard/LeaderboardRow';

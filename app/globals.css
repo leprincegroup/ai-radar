@@ -17,6 +17,8 @@
   --accent-green: #10b981;
   --accent-orange: #f59e0b;
   --accent-red: #ef4444;
+  --text-muted: #8888aa;
+  --bg-surface-hover: #262640;
 }
 
 * {

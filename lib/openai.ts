@@ -65,10 +65,22 @@ Return JSON with exactly these fields:
     })
   );
 
-  const raw = JSON.parse(result.choices[0].message.content || '{}');
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(result.choices[0].message.content || '{}');
+  } catch {
+    return {
+      one_liner: tool.tagline || tool.description || '',
+      category: 'other',
+      tags: [],
+      is_free: false,
+      has_api: false,
+      is_open_source: false,
+    };
+  }
   return {
-    one_liner: raw.one_liner || tool.tagline || '',
-    category: raw.category || 'other',
+    one_liner: (raw.one_liner as string) || tool.tagline || '',
+    category: (raw.category as ToolEnrichment['category']) || 'other',
     tags: Array.isArray(raw.tags) ? raw.tags : [],
     is_free: Boolean(raw.is_free),
     has_api: Boolean(raw.has_api),
@@ -107,9 +119,17 @@ Return JSON with:
     })
   );
 
-  const raw = JSON.parse(result.choices[0].message.content || '{}');
+  let raw: Record<string, unknown>;
+  try {
+    raw = JSON.parse(result.choices[0].message.content || '{}');
+  } catch {
+    return {
+      summary: paper.abstract.slice(0, 200),
+      tags: [],
+    };
+  }
   return {
-    summary: raw.summary || paper.abstract.slice(0, 200),
+    summary: (raw.summary as string) || paper.abstract.slice(0, 200),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
   };
 }

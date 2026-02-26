@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { Tool } from '@/types';
 import { Badge } from '@/components/ui/Badge';
 import { HypeScore } from '@/components/ui/HypeScore';
@@ -32,10 +33,13 @@ export function ToolCard({ tool, bookmarked = false, onBookmark }: ToolCardProps
         <div className="flex items-start gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-[var(--bg-surface)] flex items-center justify-center flex-shrink-0 text-base overflow-hidden">
             {tool.logo_url ? (
-              <img
+              <Image
                 src={tool.logo_url}
                 alt={tool.name}
+                width={32}
+                height={32}
                 className="w-full h-full object-cover rounded-lg"
+                unoptimized
               />
             ) : (
               '🔧'
