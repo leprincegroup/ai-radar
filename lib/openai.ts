@@ -37,6 +37,16 @@ export async function enrichTool(tool: {
   url: string;
   source: string;
 }): Promise<ToolEnrichment> {
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      one_liner: tool.tagline || tool.description || '',
+      category: 'other',
+      tags: [],
+      is_free: false,
+      has_api: false,
+      is_open_source: false,
+    };
+  }
   const client = getClient();
 
   const result = await withRetry(() =>
@@ -97,6 +107,12 @@ export async function enrichPaper(paper: {
   title: string;
   abstract: string;
 }): Promise<PaperEnrichment> {
+  if (!process.env.OPENAI_API_KEY) {
+    return {
+      summary: paper.abstract.slice(0, 300),
+      tags: [],
+    };
+  }
   const client = getClient();
 
   const result = await withRetry(() =>

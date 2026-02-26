@@ -36,7 +36,7 @@ export async function fetchRedditAIPosts(): Promise<RawRedditPost[]> {
         const p = child.data;
         if (!p?.id || seen.has(p.id)) continue;
         // Filter out low-quality posts
-        if ((p.score ?? 0) < 10) continue;
+        if ((p.score ?? 0) < 3) continue;
         // Skip pinned/stickied mod posts
         if (p.stickied || p.pinned) continue;
 
